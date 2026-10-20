@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 stats.json
 hits_log.txt*
+cookies.txt

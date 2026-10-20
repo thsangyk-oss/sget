@@ -23,6 +23,7 @@ IPS = {}         # ip -> last-seen ts
 ACTIVE = [0]     # in-flight tracked requests
 TRACK_PATHS = {"/", "/api/resolve", "/api/save"}
 DEBUG_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hits_log.txt")
+COOKIES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 TRACK_PREFIX = ("/api/file/", "/api/proxy/")
 
 def _load_stats():
@@ -269,7 +270,11 @@ def resolve(url):
                 continue
         # fall through to yt-dlp
     opts = {"quiet": True, "no_warnings": True, "noplaylist": True,
-            "skip_download": True, "format": "bv*+ba/b"}
+            "skip_download": True, "format": "bv*+ba/b",
+            "js_runtimes": {"node": {}}, "remote_components": {"ejs:github"}}
+    if os.path.exists(COOKIES_FILE):
+        opts["cookiefile"] = COOKIES_FILE
+        opts["extractor_args"] = {"youtube": {"player_client": ["all"]}}
     info = yt_dlp.YoutubeDL(opts).extract_info(url, download=False)
     if "entries" in info and info["entries"]:
         info = info["entries"][0]
@@ -351,6 +356,10 @@ def run_job(jid, rid, mode, afmt=None):
             opts = {
                 "quiet": True, "no_warnings": True, "noplaylist": True,
                 "format": "bestaudio/best" if afmt else "bv*+ba/b",
+                "js_runtimes": {"node": {}}, "remote_components": {"ejs:github"},
+                **({"cookiefile": COOKIES_FILE,
+                    "extractor_args": {"youtube": {"player_client": ["all"]}}}
+                   if os.path.exists(COOKIES_FILE) else {}),
                 "merge_output_format": "mp4",
                 "ffmpeg_location": FFMPEG_DIR,
                 "outtmpl": os.path.join(tmpdir, "out.%(ext)s"),
