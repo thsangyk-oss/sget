@@ -83,7 +83,8 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 
 PLATFORM_NAMES = {
     "twitter": "X (Twitter)", "tiktok": "TikTok", "facebook": "Facebook",
-    "youtube": "YouTube", "instagram": "Instagram", "generic": "Web",
+    "youtube": "YouTube", "instagram": "Instagram", "bilibili": "Bilibili",
+    "generic": "Web",
 }
 
 def safe_name(s):
@@ -378,6 +379,7 @@ def run_job(jid, rid, mode, afmt=None):
                 "ffmpeg_location": FFMPEG_DIR,
                 "outtmpl": os.path.join(tmpdir, "out.%(ext)s"),
                 "progress_hooks": [hook],
+                "http_chunk_size": 10485760, "retries": 10, "file_access_retries": 5,
             }
             yt_dlp.YoutubeDL(opts).download([meta.get("yt_url") or meta["url"]])
             files = [f for f in os.listdir(tmpdir) if not f.endswith((".part", ".ytdl"))]
