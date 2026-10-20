@@ -556,6 +556,11 @@ async function save(mode,afmt){
     if(!r.ok||d.error)throw new Error(d.error||'Lỗi');
     if(d.stream_url){window.location=d.stream_url;$('msg').innerHTML='<span class="ok">Đang tải về máy...</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false;return;}
     const jid=d.job_id;
+    if(mode!=='device'){
+      $('msg').innerHTML='<span class="ok">Đã nhận — file sẽ tiếp tục tải trên máy chủ</span>';
+      $('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false;
+      return;
+    }
     const t=setInterval(async()=>{
       const j=await (await fetch('/api/job/'+jid)).json();
       $('bar').style.width=(j.progress||0)+'%';
