@@ -6,9 +6,12 @@ from flask import Flask, Response, jsonify, request, send_file
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 SAVE_DIR = r"E:\devin_task\saved"
+SAVE_DIR_D = r"D:\Video"
 TMP_DIR = r"E:\devin_task\tmp_dl"
 FFMPEG_DIR = r"E:\devin_task\ffmpeg"
+SERVER_DIRS = {"server": SAVE_DIR_D, "serverx": SAVE_DIR}
 os.makedirs(SAVE_DIR, exist_ok=True)
+os.makedirs(SAVE_DIR_D, exist_ok=True)
 os.makedirs(TMP_DIR, exist_ok=True)
 
 app = Flask(__name__)
@@ -330,6 +333,7 @@ def extract_audio(src, tmpdir, afmt):
 def run_job(jid, rid, mode, afmt=None):
     job = JOBS[jid]
     meta = RES[rid]
+    save_dir = SERVER_DIRS.get(mode)
     tmpdir = os.path.join(TMP_DIR, jid)
     os.makedirs(tmpdir, exist_ok=True)
     try:
@@ -373,8 +377,8 @@ def run_job(jid, rid, mode, afmt=None):
             fname = safe_name(meta["title"]) + "." + aext
         else:
             fname = safe_name(meta["title"]) + ".mp4"
-        if mode == "server":
-            dest = os.path.join(SAVE_DIR, fname)
+        if save_dir:
+            dest = os.path.join(save_dir, fname)
             base, ext0 = os.path.splitext(dest)
             n = 1
             while os.path.exists(dest):
@@ -387,7 +391,7 @@ def run_job(jid, rid, mode, afmt=None):
     except Exception as e:
         job.update(status="error", error=str(e)[:300])
     finally:
-        if mode == "server":
+        if save_dir:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
 HTML = """<!doctype html><html lang="vi"><head>
@@ -443,6 +447,7 @@ input:focus{border-color:#4f7cff}
   <div class="row">
     <button class="btn btn-dl" id="bdl" onclick="save('device')">Tải về máy</button>
     <button class="btn btn-sv" id="bsv" style="display:none" onclick="save('server')">Lưu trên máy chủ</button>
+    <button class="btn btn-sv" id="bsx" style="display:none;flex:0 0 64px" onclick="save('serverx')" title="Lưu vào E:\devin_task\saved">X</button>
   </div>
   <div class="row">
     <button class="btn btn-au" onclick="save('device','orig')">🎵 Audio gốc</button>
@@ -460,7 +465,7 @@ let RID=null, busy=false, DIRECT=null;
 let armed=false, suppressClick=false, armT=null;
 const $=id=>document.getElementById(id);
 function findUrl(s){const m=(s||'').match(/https?:\/\/\S+/);return m?m[0]:''}
-function setSV(v){$('bsv').style.display=v?'':'none'}
+function setSV(v){$('bsv').style.display=$('bsx').style.display=v?'':'none'}
 function goClick(){if(suppressClick){suppressClick=false;return}resolve()}
 addEventListener('DOMContentLoaded',()=>{
   const q=new URLSearchParams(location.search);
@@ -518,40 +523,40 @@ async function save(mode,afmt){
   if(!RID||busy)return;
   if(mode==='device'&&DIRECT&&!afmt){window.location=DIRECT;$('msg').innerHTML='<span class="ok">Đang tải về máy...</span>';return}
   let pass='';
-  if(mode==='server'&&location.hostname.endsWith('misalab.com')){
+  if(mode!=='device'&&location.hostname.endsWith('misalab.com')){
     pass=localStorage.getItem('gml_pass')||'';
     if(!pass){
       pass=prompt('Nhập mật khẩu để lưu trên máy chủ:')||'';
       if(!pass)return;
     }
   }
-  busy=true;$('bdl').disabled=$('bsv').disabled=true;
+  busy=true;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=true;
   $('msg').innerHTML='';$('prog').style.display='block';$('bar').style.width='2%';
   try{
     let r=await postSave(mode,pass,afmt);
-    if(r.status===401&&mode==='server'){
+    if(r.status===401&&mode!=='device'){
       localStorage.removeItem('gml_pass');
       pass=prompt('Sai mật khẩu, nhập lại:')||'';
-      if(!pass){busy=false;$('bdl').disabled=$('bsv').disabled=false;$('prog').style.display='none';return}
+      if(!pass){busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false;$('prog').style.display='none';return}
       r=await postSave(mode,pass,afmt);
     }
     if(r.status===401)throw new Error('Sai mật khẩu');
     const d=await r.json();
-    if(mode==='server')localStorage.setItem('gml_pass',pass);
+    if(mode!=='device')localStorage.setItem('gml_pass',pass);
     if(!r.ok||d.error)throw new Error(d.error||'Lỗi');
-    if(d.stream_url){window.location=d.stream_url;$('msg').innerHTML='<span class="ok">Đang tải về máy...</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=false;return;}
+    if(d.stream_url){window.location=d.stream_url;$('msg').innerHTML='<span class="ok">Đang tải về máy...</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false;return;}
     const jid=d.job_id;
     const t=setInterval(async()=>{
       const j=await (await fetch('/api/job/'+jid)).json();
       $('bar').style.width=(j.progress||0)+'%';
       if(j.status==='ready'){clearInterval(t);window.location='/api/file/'+jid;
-        $('msg').innerHTML='<span class="ok">Đang tải về máy...</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=false;}
+        $('msg').innerHTML='<span class="ok">Đang tải về máy...</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false;}
       else if(j.status==='done'){clearInterval(t);
-        $('msg').innerHTML='<span class="ok">Đã lưu: '+j.filename+'</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=false;}
+        $('msg').innerHTML='<span class="ok">Đã lưu: '+j.filename+'</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false;}
       else if(j.status==='error'){clearInterval(t);
-        $('msg').innerHTML='<span class="err">Lỗi: '+j.error+'</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=false;}
+        $('msg').innerHTML='<span class="err">Lỗi: '+j.error+'</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false;}
     },800);
-  }catch(e){$('msg').innerHTML='<span class="err">'+e.message+'</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=false}
+  }catch(e){$('msg').innerHTML='<span class="err">'+e.message+'</span>';$('prog').style.display='none';busy=false;$('bdl').disabled=$('bsv').disabled=$('bsx').disabled=false}
 }
 </script></body></html>"""
 
@@ -620,7 +625,7 @@ def api_save():
     rid, mode = d.get("rid"), d.get("mode")
     if rid not in RES:
         return jsonify(error="Link hết hạn, hãy Get Link lại"), 400
-    if mode == "server" and "misalab.com" in (request.host or ""):
+    if mode in SERVER_DIRS and "misalab.com" in (request.host or ""):
         if request.headers.get("x-gml-pass") != SERVER_PASS:
             return jsonify(error="unauthorized"), 401
     meta = RES[rid]
@@ -629,7 +634,7 @@ def api_save():
         return jsonify(stream_url=meta["direct_url"])
     jid = uuid.uuid4().hex[:12]
     JOBS[jid] = {"status": "downloading", "progress": 0}
-    threading.Thread(target=run_job, args=(jid, rid, "server" if mode == "server" else "device", afmt), daemon=True).start()
+    threading.Thread(target=run_job, args=(jid, rid, mode if mode in SERVER_DIRS else "device", afmt), daemon=True).start()
     return jsonify(job_id=jid)
 
 @app.get("/api/job/<jid>")
