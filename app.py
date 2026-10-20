@@ -13,6 +13,8 @@ SERVER_DIRS = {"server": SAVE_DIR_D, "serverx": SAVE_DIR}
 os.makedirs(SAVE_DIR, exist_ok=True)
 os.makedirs(SAVE_DIR_D, exist_ok=True)
 os.makedirs(TMP_DIR, exist_ok=True)
+for _d in os.listdir(TMP_DIR):
+    shutil.rmtree(os.path.join(TMP_DIR, _d), ignore_errors=True)
 
 app = Flask(__name__)
 
