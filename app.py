@@ -108,6 +108,7 @@ def resolve_x(url):
         "duration": v.get("duration"),
         "size": None,
         "direct_url": best["url"],
+        "direct_only": True,
         "headers": {"User-Agent": UA, "Referer": "https://x.com/"},
     }
 
@@ -128,6 +129,7 @@ def resolve_tiktok(url):
         "duration": d.get("duration"),
         "size": d.get("hd_size") or d.get("size"),
         "direct_url": play,
+        "direct_only": True,
         "headers": {"User-Agent": UA},
     }
 
@@ -228,6 +230,7 @@ def resolve_threads(url):
         "duration": None,
         "size": None,
         "direct_url": vurl,
+        "direct_only": True,
         "headers": {"User-Agent": UA},
     }
 
@@ -251,6 +254,7 @@ def resolve_threads_srf(url):
         "duration": d.get("duration"),
         "size": None,
         "direct_url": vurl,
+        "direct_only": True,
         "headers": {"User-Agent": UA},
     }
 
@@ -284,7 +288,8 @@ def resolve(url):
     direct, headers = None, None
     fmts = info.get("formats") or []
     progs = [f for f in fmts if f.get("vcodec") not in (None, "none")
-             and f.get("acodec") not in (None, "none") and str(f.get("url", "")).startswith("http")]
+             and f.get("acodec") not in (None, "none") and str(f.get("url", "")).startswith("http")
+             and (f.get("protocol") or "https") in ("http", "https")]
     if progs:
         hd = [f for f in progs if f.get("format_id") == "hd"]
         b = max(hd or progs, key=lambda f: f.get("tbr") or f.get("height") or 0)
@@ -337,7 +342,7 @@ def run_job(jid, rid, mode, afmt=None):
     tmpdir = os.path.join(TMP_DIR, jid)
     os.makedirs(tmpdir, exist_ok=True)
     try:
-        if meta.get("direct_url"):
+        if meta.get("direct_url") and meta.get("direct_only"):
             out = os.path.join(tmpdir, "out.mp4")
             req = urllib.request.Request(meta["direct_url"], headers=meta.get("headers") or {"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=30) as r, open(out, "wb") as f:
@@ -350,6 +355,9 @@ def run_job(jid, rid, mode, afmt=None):
                     f.write(b)
                     got += len(b)
                     job["progress"] = got / total * 100 if total else 0
+            with open(out, "rb") as f:
+                if f.read(8).startswith(b"#EXTM3U"):
+                    raise ValueError("link là playlist HLS, không phải file video")
             final = out
         else:
             def hook(d):
