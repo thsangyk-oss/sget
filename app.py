@@ -5,10 +5,10 @@ import yt_dlp
 from flask import Flask, Response, jsonify, request, send_file
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-SAVE_DIR = r"E:\devin_task\saved"
+SAVE_DIR = r"C:\Users\ADMIN\Documents\saved"
 SAVE_DIR_D = r"D:\Video"
-TMP_DIR = r"E:\devin_task\tmp_dl"
-FFMPEG_DIR = r"E:\devin_task\ffmpeg"
+TMP_DIR = r"C:\Users\ADMIN\Documents\devin_task\tmp_dl"
+FFMPEG_DIR = r"C:\Users\ADMIN\Documents\devin_task\ffmpeg"
 SERVER_DIRS = {"server": SAVE_DIR_D, "serverx": SAVE_DIR}
 os.makedirs(SAVE_DIR, exist_ok=True)
 os.makedirs(SAVE_DIR_D, exist_ok=True)
@@ -459,7 +459,7 @@ input:focus{border-color:#4f7cff}
   <div class="row">
     <button class="btn btn-dl" id="bdl" onclick="save('device')">Tải về máy</button>
     <button class="btn btn-sv" id="bsv" style="display:none" onclick="save('server')">Lưu trên máy chủ</button>
-    <button class="btn btn-sv" id="bsx" style="display:none;flex:0 0 64px" onclick="save('serverx')" title="Lưu vào E:\devin_task\saved">X</button>
+    <button class="btn btn-sv" id="bsx" style="display:none;flex:0 0 64px" onclick="save('serverx')" title="Lưu vào C:/Users/ADMIN/Documents/saved">X</button>
   </div>
   <div class="row">
     <button class="btn btn-au" onclick="save('device','orig')">🎵 Audio gốc</button>
